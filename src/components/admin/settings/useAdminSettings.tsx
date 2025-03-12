@@ -4,92 +4,45 @@ import { useSiteSettings } from '@/hooks/useSiteSettings';
 import { SiteSettings } from '@/types/siteSettings';
 import { toast } from "sonner";
 import { useNavigate } from 'react-router-dom';
+import { uploadBase64Image } from '@/services/imageService';
 
 export function useAdminSettings() {
   const { settings, updateSettings, resetSettings, exportSettings, importSettings } = useSiteSettings();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState("general");
-  const [logoUrl, setLogoUrl] = useState<string>(settings.logo === 'stored_separately' ? localStorage.getItem('site_logo') || "/placeholder.svg" : settings.logo || "/placeholder.svg");
+  const [logoUrl, setLogoUrl] = useState<string>(settings.logo || "/placeholder.svg");
   const [logoUploading, setLogoUploading] = useState(false);
-  const [faviconUrl, setFaviconUrl] = useState<string>(settings.favicon === 'stored_separately' ? localStorage.getItem('site_favicon') || "/favicon.ico" : settings.favicon || "/favicon.ico");
+  const [faviconUrl, setFaviconUrl] = useState<string>(settings.favicon || "/favicon.ico");
   const [faviconUploading, setFaviconUploading] = useState(false);
   const navigate = useNavigate();
   
   // Synchronize local state with settings when they change
   useEffect(() => {
     if (settings.logo) {
-      const logoSrc = settings.logo === 'stored_separately' 
-        ? localStorage.getItem('site_logo') || "/placeholder.svg" 
-        : settings.logo;
-      setLogoUrl(logoSrc);
+      setLogoUrl(settings.logo);
     }
     
     if (settings.favicon) {
-      const faviconSrc = settings.favicon === 'stored_separately' 
-        ? localStorage.getItem('site_favicon') || "/favicon.ico" 
-        : settings.favicon;
-      setFaviconUrl(faviconSrc);
+      setFaviconUrl(settings.favicon);
     }
   }, [settings.logo, settings.favicon]);
 
-  const handleLogoUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) return;
+  const handleLogoUpload = useCallback(async (imageUrl: string) => {
+    if (!imageUrl) return;
     
-    const file = e.target.files[0];
-    setLogoUploading(true);
-    
-    // Create a preview URL and apply it immediately to see the change
-    const fileReader = new FileReader();
-    fileReader.onload = (e) => {
-      const result = e.target?.result as string;
-      
-      if (result) {
-        // Update locally for UI
-        setLogoUrl(result);
-        
-        // Store in settings and explicitly in localStorage
-        updateSettings({ logo: result });
-        localStorage.setItem('site_logo', result);
-        
-        // Then simulate the server upload for persistent storage
-        setTimeout(() => {
-          setLogoUploading(false);
-          toast.success("Logo mis à jour avec succès");
-        }, 1000);
-      }
-    };
-    
-    fileReader.readAsDataURL(file);
+    // Mettre à jour directement le logo
+    updateSettings({ logo: imageUrl });
+    setLogoUrl(imageUrl);
+    toast.success("Logo mis à jour avec succès");
   }, [updateSettings]);
 
-  const handleFaviconUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) return;
+  const handleFaviconUpload = useCallback(async (imageUrl: string) => {
+    if (!imageUrl) return;
     
-    const file = e.target.files[0];
-    setFaviconUploading(true);
-    
-    // Create a preview URL and apply it immediately
-    const fileReader = new FileReader();
-    fileReader.onload = (e) => {
-      const result = e.target?.result as string;
-      
-      if (result) {
-        // Update locally for UI
-        setFaviconUrl(result);
-        
-        // Store in settings and explicitly in localStorage
-        updateSettings({ favicon: result });
-        localStorage.setItem('site_favicon', result);
-        
-        // Then simulate the server upload
-        setTimeout(() => {
-          setFaviconUploading(false);
-          toast.success("Favicon mis à jour avec succès");
-        }, 1000);
-      }
-    };
-    
-    fileReader.readAsDataURL(file);
+    // Mettre à jour directement le favicon
+    updateSettings({ favicon: imageUrl });
+    setFaviconUrl(imageUrl);
+    toast.success("Favicon mis à jour avec succès");
   }, [updateSettings]);
 
   const handleImportClick = useCallback(() => {
