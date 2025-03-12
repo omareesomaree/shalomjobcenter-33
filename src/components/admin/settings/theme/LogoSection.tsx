@@ -7,12 +7,13 @@ import { ImageIcon, Loader2, AlertCircle } from "lucide-react";
 import { useSiteSettings } from '@/hooks/useSiteSettings';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
+import { ImageUploader } from '@/components/shared/image-uploader';
 import "../../../../styles/components/logo.css";
 
 interface LogoSectionProps {
   logoUrl: string;
   logoUploading: boolean;
-  handleLogoUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  handleLogoUpload: (imageUrl: string) => void;
 }
 
 export const LogoSection = ({ 
@@ -130,18 +131,12 @@ export const LogoSection = ({
           )}
           
           <div className="flex items-center gap-4">
-            <Button variant="outline" className="relative" disabled={logoUploading}>
-              {logoUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {previewUrl ? "Changer le logo" : "Ajouter un logo"}
-              <input
-                id="logo"
-                type="file"
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                onChange={handleLogoUpload}
-                accept="image/*"
-                disabled={logoUploading}
-              />
-            </Button>
+            <ImageUploader
+              initialImage={previewUrl}
+              onImageUpload={handleLogoUpload}
+              label=""
+              maxSizeMB={2}
+            />
             
             <div className="text-sm text-muted-foreground">
               Formats supportés: JPG, PNG, GIF, SVG. Taille max: 2MB

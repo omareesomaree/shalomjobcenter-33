@@ -4,8 +4,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Mail, Phone, MapPin, Calendar, User } from 'lucide-react';
 import { User as UserType } from '@/hooks/useAuth';
-import { ImageUploader } from '@/components/shared/ImageUploader';
+import { ImageUploader } from '@/components/shared/image-uploader';
 import { toast } from 'sonner';
+import { uploadBase64Image } from '@/services/imageService';
 
 interface ProfileSidebarProps {
   user: UserType | null;
@@ -25,41 +26,27 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ user, onAvatarCh
     }
   }, [user?.avatar]);
 
-  const handleImageUpload = (file: File) => {
-    setIsUploading(true);
+  const handleAvatarChange = (imageUrl: string) => {
+    if (!imageUrl) return;
     
-    // Créer un URL pour la prévisualisation
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      if (event.target?.result) {
-        // Stocker temporairement l'URL de prévisualisation
-        const previewUrl = event.target.result as string;
-        
-        // Simuler le délai de téléchargement
-        setTimeout(() => {
-          setAvatar(previewUrl);
-          setIsUploading(false);
-          setAvatarKey(Date.now()); // Générer une nouvelle clé pour forcer le rechargement
-          
-          // Immediately display the new avatar
-          document.querySelectorAll('.user-avatar-display').forEach((el) => {
-            (el as HTMLImageElement).src = previewUrl;
-            (el as HTMLImageElement).setAttribute('key', String(Date.now()));
-          });
-          
-          // Save to localStorage to persist across refreshes
-          localStorage.setItem('userAvatar', previewUrl);
-          
-          // Notifier le composant parent du changement d'avatar
-          if (onAvatarChange) {
-            onAvatarChange(previewUrl);
-          }
-          
-          toast.success("Photo de profil mise à jour avec succès");
-        }, 1500);
-      }
-    };
-    reader.readAsDataURL(file);
+    setAvatar(imageUrl);
+    setAvatarKey(Date.now()); // Générer une nouvelle clé pour forcer le rechargement
+    
+    // Immediately display the new avatar
+    document.querySelectorAll('.user-avatar-display').forEach((el) => {
+      (el as HTMLImageElement).src = imageUrl;
+      (el as HTMLImageElement).setAttribute('key', String(Date.now()));
+    });
+    
+    // Save to localStorage to persist across refreshes
+    localStorage.setItem('userAvatar', imageUrl);
+    
+    // Notifier le composant parent du changement d'avatar
+    if (onAvatarChange) {
+      onAvatarChange(imageUrl);
+    }
+    
+    toast.success("Photo de profil mise à jour avec succès");
   };
 
   return (
@@ -76,10 +63,8 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ user, onAvatarCh
           </div>
           <div className="absolute -bottom-2 right-1/3 bg-white rounded-full p-1 shadow-sm">
             <ImageUploader
-              currentImage={avatar}
-              onImageUpload={handleImageUpload}
-              isUploading={isUploading}
-              variant="avatar"
+              initialImage={avatar}
+              onImageUpload={handleAvatarChange}
               label="Photo de profil"
               maxSizeMB={5}
             />

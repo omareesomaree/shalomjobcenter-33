@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { ImageUploadField } from './ImageUploadField';
+import { ImageUploader } from '@/components/shared/image-uploader'; 
 import { useContentManagement } from './hooks/useContentManagement';
 import { Save, Plus, Trash2, Edit, Check, X, Globe, FileText, Menu } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -62,26 +62,15 @@ export const ContentSettingsTab: React.FC = () => {
     featured: false
   });
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) return;
+  const handleImageUpload = (imageUrl: string) => {
+    if (!imageUrl) return;
     
-    const file = e.target.files[0];
-    setImageUploading(true);
-    
-    // Simuler un téléchargement d'image
-    setTimeout(() => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const imageUrl = e.target?.result as string;
-        if (activeContentTab === "pages" && activeSectionId) {
-          updatePageSection(activePageId, activeSectionId, { imageUrl });
-        } else if (activeContentTab === "publications" && activePublicationId) {
-          updatePublication(activePublicationId, { image: imageUrl });
-        }
-        setImageUploading(false);
-      };
-      reader.readAsDataURL(file);
-    }, 1000);
+    // Update the relevant content with the new image URL
+    if (activeContentTab === "pages" && activeSectionId) {
+      updatePageSection(activePageId, activeSectionId, { imageUrl });
+    } else if (activeContentTab === "publications" && activePublicationId) {
+      updatePublication(activePublicationId, { image: imageUrl });
+    }
   };
 
   const startEditing = (sectionId: string) => {
@@ -365,11 +354,11 @@ export const ContentSettingsTab: React.FC = () => {
                       {section.type === "image" && activeSectionId === section.id && isEditing && (
                         <div className="mt-4">
                           <Label className="mb-2">Image de la section</Label>
-                          <ImageUploadField
-                            label=""
-                            imageUrl={section.imageUrl || ""}
-                            onUpload={handleImageUpload}
-                            isUploading={imageUploading}
+                          <ImageUploader
+                            initialImage={section.imageUrl || ""}
+                            onImageUpload={handleImageUpload}
+                            label="Image de section"
+                            maxSizeMB={2}
                           />
                         </div>
                       )}
@@ -668,11 +657,11 @@ export const ContentSettingsTab: React.FC = () => {
                         </div>
                         <div>
                           <Label className="mb-2">Image</Label>
-                          <ImageUploadField
-                            label=""
-                            imageUrl={pub.image || ""}
-                            onUpload={handleImageUpload}
-                            isUploading={imageUploading}
+                          <ImageUploader
+                            initialImage={pub.image || ""}
+                            onImageUpload={handleImageUpload}
+                            label="Image de publication"
+                            maxSizeMB={2}
                           />
                         </div>
                       </div>

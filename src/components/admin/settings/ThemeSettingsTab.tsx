@@ -17,8 +17,8 @@ interface ThemeSettingsTabProps {
   logoUploading: boolean;
   faviconUrl: string;
   faviconUploading: boolean;
-  handleLogoUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  handleFaviconUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  handleLogoUpload: (imageUrl: string) => void;
+  handleFaviconUpload: (imageUrl: string) => void;
   handleThemeColorChange: (type: 'primaryColor' | 'secondaryColor', color: string) => void;
   handleInputChange: (field: keyof SiteSettings, value: any) => void;
 }
