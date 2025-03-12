@@ -22,18 +22,9 @@ export const StatusForm: React.FC<StatusFormProps> = ({ handlePublish }) => {
   const [textColor, setTextColor] = useState('#ffffff'); // Default white text
   const [isPreview, setIsPreview] = useState(false);
 
-  const handleImageUpload = (file: File) => {
-    setIsUploading(true);
-    
-    // Simulate upload delay
-    setTimeout(() => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setStatusImage(reader.result as string);
-        setIsUploading(false);
-      };
-      reader.readAsDataURL(file);
-    }, 1000);
+  // Updated to accept a string URL from the ImageUploader
+  const handleImageUpload = (imageUrl: string) => {
+    setStatusImage(imageUrl);
   };
 
   const onPublish = () => {
@@ -115,13 +106,11 @@ export const StatusForm: React.FC<StatusFormProps> = ({ handlePublish }) => {
         <div>
           <Label className="block mb-2">Image (optionnelle)</Label>
           <ImageUploader
-            currentImage={statusImage}
+            initialImage={statusImage}
             onImageUpload={handleImageUpload}
-            onImageRemove={() => setStatusImage(undefined)}
-            isUploading={isUploading}
-            variant="featured"
             label="Ajouter une image"
             className="w-full h-32"
+            maxSizeMB={2}
           />
         </div>
       </div>
