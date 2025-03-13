@@ -20,9 +20,16 @@ export const uploadImage = async (imageFile: File | Blob): Promise<string | null
     formData.append("image", imageFile);
     formData.append("key", IMGBB_API_KEY);
 
-    const response = await fetch("https://api.imgbb.com/1/upload", {
+    // Ajouter un paramètre pour éviter la mise en cache par le navigateur
+    const timestamp = new Date().getTime();
+    
+    const response = await fetch(`https://api.imgbb.com/1/upload?t=${timestamp}`, {
       method: "POST",
       body: formData,
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+      }
     });
 
     if (!response.ok) {
@@ -32,6 +39,7 @@ export const uploadImage = async (imageFile: File | Blob): Promise<string | null
     const data = await response.json();
     
     if (data.success) {
+      // Utiliser l'URL direct plutôt que l'URL d'affichage
       console.log("Image téléchargée avec succès:", data.data.url);
       return data.data.url;
     } else {
@@ -39,7 +47,7 @@ export const uploadImage = async (imageFile: File | Blob): Promise<string | null
     }
   } catch (error) {
     console.error("Erreur de téléchargement d'image:", error);
-    toast.error("Échec du téléchargement de l'image");
+    toast.error("Échec du téléchargement de l'image. Réessayez avec une image plus petite.");
     return null;
   }
 };
@@ -60,9 +68,16 @@ export const uploadBase64Image = async (base64Image: string): Promise<string | n
     formData.append("image", base64Data);
     formData.append("key", IMGBB_API_KEY);
 
-    const response = await fetch("https://api.imgbb.com/1/upload", {
+    // Ajouter un paramètre pour éviter la mise en cache
+    const timestamp = new Date().getTime();
+
+    const response = await fetch(`https://api.imgbb.com/1/upload?t=${timestamp}`, {
       method: "POST",
       body: formData,
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+      }
     });
 
     if (!response.ok) {
@@ -106,6 +121,33 @@ export const uploadMultipleImages = async (
     }
   });
 
-  const uploadedUrls = await Promise.all(uploadPromises);
-  return uploadedUrls.filter(url => url !== ""); // Filtrer les échecs
+  try {
+    const uploadedUrls = await Promise.all(uploadPromises);
+    return uploadedUrls.filter(url => url !== ""); // Filtrer les échecs
+  } catch (error) {
+    console.error("Erreur lors du téléchargement multiple:", error);
+    toast.error("Certaines images n'ont pas pu être téléchargées");
+    return [];
+  }
+};
+
+/**
+ * Vérifie si une URL d'image est valide
+ */
+export const isImageUrlValid = async (url: string): Promise<boolean> => {
+  if (!url || !url.startsWith('http')) return false;
+  
+  try {
+    const response = await fetch(url, {
+      method: 'HEAD',
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache'
+      }
+    });
+    return response.ok;
+  } catch (error) {
+    console.error("Erreur de vérification d'URL:", error);
+    return false;
+  }
 };

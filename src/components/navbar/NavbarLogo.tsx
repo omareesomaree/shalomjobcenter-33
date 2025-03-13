@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { isImageUrlValid } from "@/services/imageService";
 import "../../styles/components/logo.css";
 
 export const NavbarLogo = () => {
@@ -11,28 +12,57 @@ export const NavbarLogo = () => {
   const [logoError, setLogoError] = useState(false);
   const [currentLogo, setCurrentLogo] = useState<string>("");
   
-  // Update currentLogo when settings.logo changes or on component mount
-  useEffect(() => {
+  // Fonction pour vérifier et charger le logo
+  const loadLogo = async () => {
     try {
       let logoSrc = "";
       
+      // Vérifier si le logo est stocké séparément
       if (settings.logo === 'stored_separately') {
         const storedLogo = localStorage.getItem('site_logo');
-        logoSrc = storedLogo || "/lovable-uploads/840dfb44-1c4f-4475-9321-7f361be73327.png";
+        if (storedLogo && await isValidImageSource(storedLogo)) {
+          logoSrc = storedLogo;
+          console.log("Logo chargé depuis le stockage séparé");
+        } else {
+          logoSrc = "/lovable-uploads/d5d07869-e401-4c49-8357-a89107918217.png";
+          console.log("Utilisation du logo par défaut (stockage séparé non valide)");
+        }
+      } else if (settings.logo && await isValidImageSource(settings.logo)) {
+        logoSrc = settings.logo;
+        console.log("Logo chargé depuis les paramètres:", logoSrc.substring(0, 30) + "...");
       } else {
-        logoSrc = settings.logo || "/lovable-uploads/840dfb44-1c4f-4475-9321-7f361be73327.png";
+        // Utiliser le logo par défaut téléchargé
+        logoSrc = "/lovable-uploads/d5d07869-e401-4c49-8357-a89107918217.png";
+        console.log("Utilisation du logo par défaut");
       }
       
-      console.log("Logo source actualisé:", logoSrc.substring(0, 30) + "...");
       setCurrentLogo(logoSrc);
       setLogoLoaded(false);
       setLogoError(false);
     } catch (error) {
       console.error("Erreur lors de l'initialisation du logo:", error);
       setLogoError(true);
-      // Use default logo in case of error - updated to the new logo
-      setCurrentLogo("/lovable-uploads/840dfb44-1c4f-4475-9321-7f361be73327.png");
+      // Utiliser le logo par défaut en cas d'erreur
+      setCurrentLogo("/lovable-uploads/d5d07869-e401-4c49-8357-a89107918217.png");
     }
+  };
+  
+  // Vérifier si une source d'image est valide
+  const isValidImageSource = async (src: string): Promise<boolean> => {
+    if (!src) return false;
+    
+    // Si c'est une URL http(s), vérifier si elle est valide
+    if (src.startsWith('http')) {
+      return await isImageUrlValid(src);
+    }
+    
+    // Pour les data URLs ou autres formats
+    return true;
+  };
+  
+  // Charger le logo au chargement et quand les paramètres changent
+  useEffect(() => {
+    loadLogo();
   }, [settings.logo]);
   
   return (

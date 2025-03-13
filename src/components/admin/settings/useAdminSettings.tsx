@@ -1,48 +1,140 @@
-
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useSiteSettings } from '@/hooks/useSiteSettings';
 import { SiteSettings } from '@/types/siteSettings';
 import { toast } from "sonner";
 import { useNavigate } from 'react-router-dom';
-import { uploadBase64Image } from '@/services/imageService';
+import { uploadBase64Image, isImageUrlValid } from '@/services/imageService';
 
 export function useAdminSettings() {
   const { settings, updateSettings, resetSettings, exportSettings, importSettings } = useSiteSettings();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState("general");
-  const [logoUrl, setLogoUrl] = useState<string>(settings.logo || "/placeholder.svg");
+  const [logoUrl, setLogoUrl] = useState<string>(settings.logo || "/lovable-uploads/d5d07869-e401-4c49-8357-a89107918217.png");
   const [logoUploading, setLogoUploading] = useState(false);
   const [faviconUrl, setFaviconUrl] = useState<string>(settings.favicon || "/favicon.ico");
   const [faviconUploading, setFaviconUploading] = useState(false);
   const navigate = useNavigate();
   
-  // Synchronize local state with settings when they change
   useEffect(() => {
-    if (settings.logo) {
-      setLogoUrl(settings.logo);
-    }
+    const checkImageUrls = async () => {
+      if (settings.logo && settings.logo.startsWith('http')) {
+        const isLogoValid = await isImageUrlValid(settings.logo);
+        if (!isLogoValid) {
+          console.warn("URL de logo invalide:", settings.logo);
+          setLogoUrl("/lovable-uploads/d5d07869-e401-4c49-8357-a89107918217.png");
+        } else {
+          setLogoUrl(settings.logo);
+        }
+      } else if (settings.logo) {
+        setLogoUrl(settings.logo);
+      }
+      
+      if (settings.favicon && settings.favicon.startsWith('http')) {
+        const isFaviconValid = await isImageUrlValid(settings.favicon);
+        if (!isFaviconValid) {
+          console.warn("URL de favicon invalide:", settings.favicon);
+          setFaviconUrl("/favicon.ico");
+        } else {
+          setFaviconUrl(settings.favicon);
+        }
+      } else if (settings.favicon) {
+        setFaviconUrl(settings.favicon);
+      }
+    };
     
-    if (settings.favicon) {
-      setFaviconUrl(settings.favicon);
-    }
+    checkImageUrls();
   }, [settings.logo, settings.favicon]);
 
   const handleLogoUpload = useCallback(async (imageUrl: string) => {
-    if (!imageUrl) return;
+    if (!imageUrl) {
+      toast.error("Aucune image sélectionnée pour le logo");
+      return;
+    }
     
-    // Mettre à jour directement le logo
-    updateSettings({ logo: imageUrl });
-    setLogoUrl(imageUrl);
-    toast.success("Logo mis à jour avec succès");
+    setLogoUploading(true);
+    
+    try {
+      if (imageUrl.startsWith('http')) {
+        const isValid = await isImageUrlValid(imageUrl);
+        if (!isValid) {
+          throw new Error("L'URL du logo n'est pas accessible");
+        }
+        
+        updateSettings({ logo: imageUrl });
+        setLogoUrl(imageUrl);
+        toast.success("Logo mis à jour avec succès");
+        
+        localStorage.setItem('site_logo', imageUrl);
+        return;
+      }
+      
+      const uploadedUrl = await uploadBase64Image(imageUrl);
+      
+      if (uploadedUrl) {
+        updateSettings({ logo: uploadedUrl });
+        setLogoUrl(uploadedUrl);
+        
+        localStorage.setItem('site_logo', uploadedUrl);
+        
+        toast.success("Logo téléchargé et mis à jour avec succès");
+      } else {
+        throw new Error("Échec du téléchargement du logo");
+      }
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour du logo:", error);
+      toast.error("Échec de la mise à jour du logo");
+    } finally {
+      setLogoUploading(false);
+    }
   }, [updateSettings]);
 
   const handleFaviconUpload = useCallback(async (imageUrl: string) => {
-    if (!imageUrl) return;
+    if (!imageUrl) {
+      toast.error("Aucune image sélectionnée pour le favicon");
+      return;
+    }
     
-    // Mettre à jour directement le favicon
-    updateSettings({ favicon: imageUrl });
-    setFaviconUrl(imageUrl);
-    toast.success("Favicon mis à jour avec succès");
+    setFaviconUploading(true);
+    
+    try {
+      if (imageUrl.startsWith('http')) {
+        const isValid = await isImageUrlValid(imageUrl);
+        if (!isValid) {
+          throw new Error("L'URL du favicon n'est pas accessible");
+        }
+        
+        updateSettings({ favicon: imageUrl });
+        setFaviconUrl(imageUrl);
+        
+        localStorage.setItem('site_favicon', imageUrl);
+        
+        toast.success("Favicon mis à jour avec succès");
+        return;
+      }
+      
+      const uploadedUrl = await uploadBase64Image(imageUrl);
+      
+      if (uploadedUrl) {
+        updateSettings({ favicon: uploadedUrl });
+        setFaviconUrl(uploadedUrl);
+        
+        localStorage.setItem('site_favicon', uploadedUrl);
+        
+        const faviconLink = document.querySelector('link[rel="icon"]');
+        if (faviconLink) {
+          faviconLink.setAttribute('href', uploadedUrl);
+        }
+        
+        toast.success("Favicon téléchargé et mis à jour avec succès");
+      } else {
+        throw new Error("Échec du téléchargement du favicon");
+      }
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour du favicon:", error);
+      toast.error("Échec de la mise à jour du favicon");
+    } finally {
+      setFaviconUploading(false);
+    }
   }, [updateSettings]);
 
   const handleImportClick = useCallback(() => {
@@ -64,7 +156,6 @@ export function useAdminSettings() {
       toast.error("Échec de l'importation des paramètres");
     }
 
-    // Reset the file input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -109,8 +200,7 @@ export function useAdminSettings() {
   const handleReset = useCallback(() => {
     resetSettings();
     
-    // Synchronize local state with reset settings
-    const defaultLogo = "/placeholder.svg";
+    const defaultLogo = "/lovable-uploads/d5d07869-e401-4c49-8357-a89107918217.png";
     const defaultFavicon = "/favicon.ico";
     setLogoUrl(defaultLogo);
     setFaviconUrl(defaultFavicon);
